@@ -1,0 +1,29 @@
+body { margin: 0; padding: 0; font-family: monospace; font-size: 16px; }
+
+textarea { margin: 0; overflow: hidden; resize: none; padding: 0; font-size: 16px; }
+
+button { display: none; margin: 0; }
+
+pide-match { float: left; }
+pide-with { float: left; }
+pide-end { float: left; clear: left; }
+pide-pattern { float: left; clear: left; margin-right: 1em; }
+pide-casebody { float:left; display: block; }
+
+pide-block { display: block; clear: left; padding: 10px 0 0 10px; }
+pide-syntax { float: left; }
+pide-subexp { float: left; }
+
+#pide-invisible {
+    display: none;
+    float: right;
+    border: 1px solid;
+}
+
+input {
+    margin: 0 0 0 10px;
+}
+
+#pide-add {
+    display: block; clear: left;
+}
