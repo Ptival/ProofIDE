@@ -86,7 +86,7 @@ data TaskResult
   = Success (Type ()) TCResult
   | Failure TCResult
 
-type TCResult = Term (Either String (Type ()))
+type TCResult = Term (Either String (Maybe (TypCtxt ()), Type ()))
 
 type TCWork = Work Task TaskResult TCResult
 
@@ -200,7 +200,7 @@ typeCheckStep t k = case t of
       Success _ τ1' ->
         Todo (Check ((n, τ1) +: γ) τ2 set) $ \res ->
         case res of
-          Success _ τ2' -> k $ Success set (Pi (Right set) n τ1' τ2')
+          Success _ τ2' -> k $ Success set (Pi (Right (Nothing, set)) n τ1' τ2')
           Failure τ2' ->
             k $ Failure $ Pi (Left "Failed because of subterm") n τ1' τ2'
       Failure τ1' ->
@@ -218,9 +218,9 @@ typeCheckStep t k = case t of
                 case n of
                   Just n' ->
                     let τr' = redβ (substitute n' x τr) in
-                    k $ Success τr' (App (Right τr') f' x')
+                    k $ Success τr' (App (Right (Nothing, τr')) f' x')
                   Nothing ->
-                    k $ Success τr (App (Right τr) f' x')
+                    k $ Success τr (App (Right (Nothing, τr)) f' x')
               Failure x' ->
                 k $ Failure $
                 App
@@ -243,7 +243,7 @@ typeCheckStep t k = case t of
     Todo (Check γ t τ) $ \res ->
     case res of
       Success τ' t' ->
-        k $ Success τ (Annot (Right τ) t' τ)
+        k $ Success τ (Annot (Right (Nothing, τ)) t' τ)
       Failure t' ->
         k $ Failure $
         Annot
@@ -264,7 +264,7 @@ typeCheckStep t k = case t of
                 let γ' = (n, σ) +: γ in
                 Todo (Check γ' t τ') $ \res ->
                 case res of
-                  Success _ t' -> k $ Success τ (Lam (Right τ) n t')
+                  Success _ t' -> k $ Success τ (Lam (Right (Nothing, τ)) n t')
                   Failure t' ->
                     k $ Failure $
                     Lam
@@ -282,7 +282,7 @@ typeCheckStep t k = case t of
     Todo (Check γ τ set) $ \res ->
     case res of
       Success _ _ ->
-        k $ Success τ $ Hole (Right τ)
+        k $ Success τ $ Hole (Right (Just γ, τ))
       Failure τ' ->
         k $ Failure $ Hole $ Left $
         "The type of this hole:\n" ++
@@ -308,11 +308,11 @@ typeCheckStep t k = case t of
 
   Synth γ (Var _ n) ->
     case lookup n γ of
-      Just τ -> k $ Success τ (Var (Right τ) n)
+      Just τ -> k $ Success τ (Var (Right (Nothing, τ)) n)
       Nothing ->
         k $ Failure $ Var (Left "Undefined reference") n
 
-  Synth _ (Type _) -> k $ Success set (Type (Right set))
+  Synth _ (Type _) -> k $ Success set (Type (Right (Nothing, set)))
 
   Synth _ (Lam _ _ _) ->
     error "Cannot synthesize the type of an abstraction"

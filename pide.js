@@ -50,9 +50,25 @@ function htmlize(root, j){
     const annotation = (c instanceof Array && c.length > 0) ? c[0] : c;
     if(annotation.Right) {
         var typeroot = mkSubexp();
-        htmlize(typeroot, annotation.Right);
+
+        var context = '';
+        if(t == 'Hole') {
+            _(annotation.Right[0]).map(function(e){
+                var ctxttyperoot = mkSubexp();
+                htmlize(ctxttyperoot, e[1]);
+                context = context + e[0];
+                context = context + ' : ' + $(ctxttyperoot).text();
+                context = context + '<br/>';
+            });
+        }
+
+        if (context != '') {
+            context = context + '========================================<br/>';
+        }
+
+        htmlize(typeroot, annotation.Right[1]);
         $(root)
-            .attr('title', typeroot.innerHTML)
+            .attr('title', context + typeroot.innerHTML)
             .tooltip()
         ;
     }
