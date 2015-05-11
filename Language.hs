@@ -27,8 +27,14 @@ pi :: Defaultable a => [(Name, Type a)] -> Term a -> Term a
 pi []             t = t
 pi ((n, τ) : nτs) t = Pi defaultValue (Just n) τ (pi nτs t)
 
+arr :: Defaultable a => Type a -> Type a -> Term a
+arr t1 t2 = Pi defaultValue Nothing t1 t2
+
 var :: Defaultable a => Name -> Term a
 var = Var defaultValue
+
+app :: Defaultable a => Term a -> Term a -> Term a
+app = App defaultValue
 
 hole :: Defaultable a => Term a
 hole = Hole defaultValue
@@ -240,15 +246,22 @@ typeCheckStep t k = case t of
 
   -- t : τ
   Synth γ (Annot _ t τ) ->
-    Todo (Check γ t τ) $ \res ->
+    Todo (Check γ τ set) $ \res ->
     case res of
-      Success τ' t' ->
-        k $ Success τ (Annot (Right (Nothing, τ)) t' τ)
-      Failure t' ->
+      Success _ _ ->
+        Todo (Check γ t τ) $ \res ->
+        case res of
+          Success τ' t' ->
+            k $ Success τ (Annot (Right (Nothing, τ)) t' τ)
+          Failure t' ->
+            k $ Failure $
+            Annot
+            (Left "The term did not type-check at the annotated type")
+            t' τ
+      Failure τ' ->
         k $ Failure $
-        Annot
-        (Left "The term did not type-check at the annotated type")
-        t' τ
+        -- could strip annotations from τ', but it's probably τ
+        Annot (Left "The type annotation does not have type Type") (unchecked t) τ
 
   -- λ n → t
   Check γ (Lam _ n t) τ ->
@@ -307,7 +320,7 @@ typeCheckStep t k = case t of
         k $ Failure t'
 
   Synth γ (Var _ n) ->
-    case lookup n γ of
+    case lookup n (γ ++ stdlib) of
       Just τ -> k $ Success τ (Var (Right (Nothing, τ)) n)
       Nothing ->
         k $ Failure $ Var (Left "Undefined reference") n
@@ -333,6 +346,22 @@ mkWorkWithContext γ t =
       Success _ r -> Done r
       Failure r -> Done r
   )
+
+natS = "ℕ"
+nat = var natS
+
+stdlib :: TypCtxt ()
+stdlib = reverse [
+  (natS, set),
+  ("O", nat),
+  ("S", arr nat nat),
+  ("Vec", arr nat set),
+  ("VO", app (var "Vec") (var "O")),
+  ("VS", pi [("n", nat), ("tl", app (var "Vec") (var "n"))]
+         (app (var "Vec") (app (var "S") (var "n")))),
+  ("eq", pi [("T", set), ("a", var "T")] (arr (var "T") set)),
+  ("eq_refl", pi [("T", set), ("a", var "T")] (var "eq" $$ var "T" $$ var "a" $$ var "a"))
+  ]
 
 mkWork :: Term () -> TCWork
 mkWork = mkWorkWithContext []

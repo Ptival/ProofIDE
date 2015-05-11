@@ -8,21 +8,21 @@ $digit = 0-9
 $alpha = [a-zA-Z]
 
 tokens :-
-  ($white|\160)+                ;
-  let                           { \s -> TokenLet }
-  in                            { \s -> TokenIn }
-  $digit+                       { \s -> TokenInt (read s) }
-  \(                            { \s -> TokenLParen }
-  \)                            { \s -> TokenRParen }
-  (\→|\-\>)                     { \s -> TokenArrow }
-  (\λ|\\)                       { \s -> TokenLambda }
-  \:                            { \s -> TokenColon }
-  \@                            { \s -> TokenAnnot }
-  \=                            { \s -> TokenEq }
-  \_                            { \s -> TokenUnderscore }
-  \?                            { \s -> TokenHole }
-  "Type"                        { \s -> TokenType }
-  $alpha [$alpha $digit \_ \']* { \s -> TokenSym s }
+  ($white|\160)+             ;
+  let                        { \s -> TokenLet }
+  in                         { \s -> TokenIn }
+  $digit+                    { \s -> TokenInt (read s) }
+  \(                         { \s -> TokenLParen }
+  \)                         { \s -> TokenRParen }
+  (\→|\-\>)                  { \s -> TokenArrow }
+  (\λ|\\)                    { \s -> TokenLambda }
+  \:                         { \s -> TokenColon }
+  \@                         { \s -> TokenAnnot }
+  \=                         { \s -> TokenEq }
+  \_                         { \s -> TokenUnderscore }
+  \?                         { \s -> TokenHole }
+  "Type"                     { \s -> TokenType }
+  (~$white # [\( \) \λ \ ])+ { \s -> TokenSym s }
 
 {
 

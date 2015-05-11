@@ -34,10 +34,11 @@ var { TokenSym $$ }
 
 -- low precedence
 %right '@'
-%nonassoc LAM
 %right '→'
+%nonassoc LAM
 %nonassoc '(' ')'
-%left var '?' "Type"
+%nonassoc var 'λ' "Type" "let" '?'
+%nonassoc APP
 -- high precedence
 
 %%
@@ -51,7 +52,7 @@ var                             { Var () $1 }
 | 'λ' var Term %prec LAM        { Lam () (Just $2) $3 }
 | 'λ' '_' Term %prec LAM        { Lam () Nothing $3 }
 | '(' Term ')'                  { $2 }
-| Term Term %prec var           { App () $1 $2 }
+| Term Term %prec APP           { App () $1 $2 }
 | '?'                           { Hole () }
 | "let" var '=' Term "in" Term  { Let () (Just $2) $4 $6 }
 | "let" '_' '=' Term "in" Term  { Let () Nothing $4 $6 }
