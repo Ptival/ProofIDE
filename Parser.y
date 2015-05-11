@@ -71,7 +71,7 @@ data Term a
   | Lam a (Maybe Name) (Term a)
   | App a (Term a) (Term a)
   | Let a (Maybe Name) (Term a) (Term a)
-  | Annot a (Term a) (Type ())
+  | Annot a (Term a) (Type a)
   | Hole a
   deriving (Eq, Generic, Typeable, Show)
 type Type = Term

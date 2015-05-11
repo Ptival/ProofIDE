@@ -42,7 +42,7 @@ hole = Hole defaultValue
 set :: Defaultable a => Type a
 set = Type defaultValue
 
-annot :: Defaultable a => Term a -> Type () -> Type a
+annot :: Defaultable a => Term a -> Type a -> Type a
 annot = Annot defaultValue
 
 infixr 1 -->
@@ -61,6 +61,12 @@ type TypCtxt a = [(Name, Type a)]
 (Nothing, _) +: γ = γ
 (Just n,  τ) +: γ = (n, τ) : γ
 
+{-
+[t] is the type of tasks
+[tr] is the type of tasks results
+[r] is the type of the final result
+[Todo] is continuation-based
+-}
 data Work t tr r
   = Todo t (tr -> Work t tr r)
   | Done r
@@ -115,7 +121,7 @@ annotateWith a t = case t of
   Lam _ n t -> Lam a n (annotateWith a t)
   App _ t1 t2 -> App a (annotateWith a t1) (annotateWith a t2)
   Let _ n t1 t2 -> Let a n (annotateWith a t1) (annotateWith a t2)
-  Annot _ t τ -> Annot a (annotateWith a t) τ
+  Annot _ t τ -> Annot a (annotateWith a t) (annotateWith a τ)
   Hole _ -> Hole a
 
 unchecked = annotateWith (Left "Not type-checked")
@@ -131,7 +137,7 @@ substitute n v t = case t of
   App a t1 t2 -> App a (substitute n v t1) (substitute n v t2)
   Let a n' t1 t2 ->
     Let a n' (substitute n v t1) (if Just n == n' then t2 else substitute n v t2)
-  Annot a t τ -> Annot a (substitute n v t) (substitute n (annotateWith () v) τ)
+  Annot a t τ -> Annot a (substitute n v t) (substitute n v τ)
   Hole a -> Hole a
 
 redβ :: Term a -> Term a
@@ -191,6 +197,8 @@ Pi _ (Just n1) τ1 τ2 `eqα` Pi _ (Just n2) τ3 τ4 =
   then τ1 `eqα` τ3 && τ2 `eqα` τ4
   else notFree n1 τ4 && notFree n2 τ2 &&
        τ1 `eqα` τ3 && τ2 `eqα` (substitute n2 (var n1) τ4)
+App _ t1 t2 `eqα` App _ t3 t4 =
+  t1 `eqα` t3 && t2 `eqα` t4
 _ `eqα` _ = False
 
 eqβ :: Defaultable a => Term a -> Term a -> Bool
@@ -248,20 +256,26 @@ typeCheckStep t k = case t of
   Synth γ (Annot _ t τ) ->
     Todo (Check γ τ set) $ \res ->
     case res of
-      Success _ _ ->
+      Success _ τ' ->
         Todo (Check γ t τ) $ \res ->
         case res of
-          Success τ' t' ->
-            k $ Success τ (Annot (Right (Nothing, τ)) t' τ)
+          Success τ'' t' ->
+            k $ Success τ (Annot (Right (Nothing, τ)) t' τ')
           Failure t' ->
             k $ Failure $
             Annot
-            (Left "The term did not type-check at the annotated type")
-            t' τ
+            (Left $
+             "The term did not check at the annotated type.\n"
+             ++ "Expected type:\n"
+             ++ pprint τ'
+             ++ "\nTerm:\n"
+             ++ pprint t'
+            )
+            t' τ'
       Failure τ' ->
         k $ Failure $
         -- could strip annotations from τ', but it's probably τ
-        Annot (Left "The type annotation does not have type Type") (unchecked t) τ
+        Annot (Left "The type annotation does not have type Type") (unchecked t) τ'
 
   -- λ n → t
   Check γ (Lam _ n t) τ ->
@@ -310,11 +324,12 @@ typeCheckStep t k = case t of
         if τ `eqβ` τ'
         then k $ Success τ t'
         else k $ Failure $ annotateHeadWith
-             (Left $ "This term has type:\n" ++
-              pprint τ' ++
-              "\nbut a term of type:\n" ++
-              pprint (redβ τ) ++
-              "\nis expected")
+             (Left $
+              "This term has type:\n"
+              ++ pprint τ'
+              ++ "\nbut a term of type:\n"
+              ++ pprint (redβ τ)
+              ++ "\nis expected")
              t'
       Failure t' ->
         k $ Failure t'
@@ -354,13 +369,13 @@ stdlib :: TypCtxt ()
 stdlib = reverse [
   (natS, set),
   ("O", nat),
-  ("S", arr nat nat),
-  ("Vec", arr nat set),
-  ("VO", app (var "Vec") (var "O")),
-  ("VS", pi [("n", nat), ("tl", app (var "Vec") (var "n"))]
-         (app (var "Vec") (app (var "S") (var "n")))),
-  ("eq", pi [("T", set), ("a", var "T")] (arr (var "T") set)),
-  ("eq_refl", pi [("T", set), ("a", var "T")] (var "eq" $$ var "T" $$ var "a" $$ var "a"))
+  ("S", nat --> nat),
+  ("Vec", nat --> set),
+  ("VO", var "Vec" $$ var "O"),
+  ("VS", pi [("n", nat), ("tl", var "Vec" $$ var "n")]
+         (var "Vec" $$ (var "S" $$ var "n"))),
+  ("eq", pi [("T", set), ("a", var "T")] $ var "T" --> set),
+  ("eq_refl", pi [("T", set), ("a", var "T")] $ var "eq" $$ var "T" $$ var "a" $$ var "a")
   ]
 
 mkWork :: Term () -> TCWork
@@ -373,7 +388,7 @@ tcTraceResult = go . tcTrace
     go (Done r : rest) = r
     go (_ : rest) = go rest
 
-infer :: Term a -> (Term a, Type ())
+infer :: Defaultable a => Term a -> (Term a, Type a)
 infer (Annot a t τ) = (t, τ)
 infer t = (t, hole)
 
