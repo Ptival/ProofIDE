@@ -1,0 +1,20 @@
+body {
+    margin: 0;
+}
+
+#pide-textframe {
+    font-family: monospace;
+}
+
+#pide-margin {
+    display: inline-block;
+    padding-right: 10px;
+}
+
+#pide-textarea {
+    display: inline-block;
+}
+
+#pide-cursor {
+    position: absolute;
+}

@@ -1,0 +1,9 @@
+*.css
+Lexer.hs
+Parser.hs
+*.hi
+*.js
+Main.jsexe
+*.js_hi
+*.js_o
+*.o
