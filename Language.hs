@@ -295,7 +295,11 @@ typeCheckStep t k = case t of
                   Failure t' ->
                     k $ Failure $
                     Lam
-                    (Left "The body of the λ-term did not type-check")
+                    (Left $
+                     "The body of the λ-term did not type-check.\n"
+                     ++ "Expected type:\n"
+                     ++ pprint τ
+                    )
                     n t'
           _ ->
             k $ Failure $ Lam

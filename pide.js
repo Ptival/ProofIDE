@@ -1,4 +1,3 @@
-
 function haskell(f, s) {
     var o = { x : s };
     f(o);
@@ -69,6 +68,7 @@ function htmlize(root, j){
         htmlize(typeroot, annotation.Right[1]);
         $(root)
             .attr('title', context + typeroot.innerHTML)
+            .addClass('welltyped')
             .tooltip()
         ;
     }
@@ -81,7 +81,7 @@ function htmlize(root, j){
     }
     else {
         $(root)
-            .attr('title', 'Type')
+            .attr('title', '???')
             .tooltip()
         ;
     }
@@ -137,6 +137,7 @@ function htmlize(root, j){
 
         case 'Hole':
         var hole = document.createElement('textarea');
+        $(hole).css('background-color', 'salmon');
         $(hole).each(resizeTextarea);
         hole.innerHTML = '';
         root.appendChild(hole);
@@ -202,6 +203,7 @@ function textify(block) {
             } else {
                 t = '(' + contents + ')';
             }
+
         }
 
         return t;
@@ -217,13 +219,19 @@ function addCheckButton(e) {
         .click(function() {
             var block = $(this).closest('pide-block');
             var program = textify(block, true);
-            var t = hsTypeCheck(program);
-            //alert(t);
-            var res = jQuery.parseJSON(unescape(t));
-            var root = mkSubexp();
-            htmlize(root, res);
-            block.children('pide-subexp').remove();
-            block.prepend(root);
+            try {
+                var t = hsTypeCheckDebug(program);
+                //alert(t);
+                var res = jQuery.parseJSON(unescape(t));
+                var root = mkSubexp();
+                htmlize(root, res);
+                block.children('pide-subexp').remove();
+                block.prepend(root);
+            }
+            catch (e) {
+                console.log(e);
+                alert(e);
+            }
         })
     ;
     $(e).append(button);
@@ -251,7 +259,7 @@ window.onload = function (){
             $(this).css('background-color', 'lightblue');
         })
         .on('focusout', 'textarea', function(e){
-            $(this).css('background-color', 'white');
+            $(this).css('background-color', 'salmon');
         })
         .on('change keyup keydown paste', 'textarea', resizeTextarea)
     ;
@@ -325,6 +333,13 @@ function fillPage() {
 
     addText('A partially-implemented flip:');
     addTerm('λA λB λC λf λb λa ? @ (A : Type) → (B : Type) → (C : Type) → (A → B → C) → B → A → C');
+
+    addText('Natural numbers:');
+    addTerm('O @ ℕ');
+    addTerm('S O @ ℕ');
+    addTerm('S (S O) @ ℕ');
+    addTerm('VS O VO @ Vec (S O)');
+    addTerm('eq_refl ℕ (S O) @ eq ℕ O O');
 
     $('pide-subexp').each(function() { $(this).tooltip(); });
 

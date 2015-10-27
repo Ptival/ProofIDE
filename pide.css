@@ -27,3 +27,19 @@ input {
 #pide-add {
     display: block; clear: left;
 }
+
+.welltyped, .illtyped {
+    align-items: center;
+    border-style: solid;
+    border-width: 1px 5px;
+    display: flex;
+    margin: 1px;
+}
+
+.illtyped {
+    border-color: red;
+}
+
+.welltyped {
+    border-color: green;
+}
