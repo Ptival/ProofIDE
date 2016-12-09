@@ -1,9 +1,11 @@
+/dist
 *.css
-Lexer.hs
-Parser.hs
+/Lexer.hs
+/Parser.hs
 *.hi
 *.js
-Main.jsexe
+/Main.jsexe
 *.js_hi
 *.js_o
 *.o
+/proofide.nix
