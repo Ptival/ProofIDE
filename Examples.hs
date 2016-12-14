@@ -1,6 +1,8 @@
-module Examples where
+module Main where
 
+import Control.Monad (forM_)
 import Prelude hiding (pi)
+
 import Language
 import Parser
 
@@ -67,6 +69,13 @@ tPlus =
   var "O" $$
   (lam ["n", "Tn"] $ var "S" $$ var "Tn")
 
+mainTraceStep :: IO ()
+mainTraceStep = do
+  let trace = tcTrace . mkWork $ annot tFlip τFlip
+  forM_ trace $ \ t -> do
+    putStrLn $ show t
+
 main :: IO ()
 main = do
-  putStrLn . pprint . tcTraceResult . mkWork $ annot tFlip τFlip
+  mainTraceStep
+  --putStrLn . pprint . tcTraceResult . mkWork $ annot tFlip τFlip

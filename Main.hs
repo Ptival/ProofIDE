@@ -1,32 +1,45 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import Data.Aeson
 import Data.ByteString.Lazy.UTF8
+import Data.JSString (JSString, unpack, pack)
+import Data.JSString.Text
 
 import GHCJS.Foreign
-import GHCJS.Types
+import GHCJS.Foreign.Callback (Callback, OnBlocked(ContinueAsync), syncCallback1')
+import GHCJS.Marshal.Pure
+--import GHCJS.Prim
+import GHCJS.Types (JSVal)
+
+--import JavaScript.Object
 
 import Language
 import Lexer
 import Parser
 
-handleWithIO :: (String -> IO String) -> JSRef a -> IO ()
-handleWithIO f r = do
-  input <- getProp "x" r
-  output <- f . fromJSString $ input
-  setProp "y" (toJSString output) r
+handleWithIO :: (String -> IO String) -> JSVal -> IO JSVal
+handleWithIO f v = do
+  putStrLn $ "Starting"
+  let input = unpack $ pFromJSVal v
+  putStrLn $ "Input: " ++ input
+  output <- f input
+  putStrLn $ "Output: " ++ output
+  return $ pToJSVal (pack output)
 
-handleWithPure :: (String -> String) -> JSRef a -> IO ()
-handleWithPure f = handleWithIO $ return . f
+-- handleWithPure :: (String -> String) -> JSVal -> IO JSVal
+-- handleWithPure f v = do
+--   handleWithIO (\s -> return (f s)) v
 
-typeCheck :: JSRef a -> IO ()
-typeCheck = handleWithPure process
+-- typeCheck :: JSVal -> IO JSVal
+-- typeCheck = handleWithPure process
 
-parseTerm :: JSRef a -> IO ()
-parseTerm = handleWithPure $ pprint . Parser.parseTerm
+-- parseTerm :: JSVal -> IO JSVal
+-- parseTerm = handleWithPure $ pprint . Parser.parseTerm
 
-typeCheckDebug :: JSRef a -> IO ()
-typeCheckDebug = handleWithIO $ \input -> do
+typeCheckDebug :: JSVal -> IO JSVal
+typeCheckDebug = handleWithIO $ \ input -> do
   let term = Parser.parseTerm input
   putStrLn $ "Parsed term: " ++ pprint term
   let work = inferWork term
@@ -37,20 +50,20 @@ typeCheckDebug = handleWithIO $ \input -> do
   let resStr = toString . encode $ res
   return resStr
 
-foreign import javascript unsafe "window[$1] = $2"
-  js_assignCallback :: JSString -> JSFun b -> IO ()
+foreign import javascript unsafe
+  "window[$1] = $2"
+  js_setCallback :: JSString -> Callback a -> IO ()
 
-foreign import javascript unsafe "window['haskellReady'] = true"
+foreign import javascript unsafe
+  "window['haskellReady'] = true"
   js_ready :: IO ()
 
-register :: String -> (JSRef a -> IO ()) -> IO ()
+register :: JSString -> (JSVal -> IO JSVal) -> IO ()
 register s f =
-  syncCallback1 AlwaysRetain False f >>= js_assignCallback (toJSString s)
+  syncCallback1' f >>= js_setCallback s
 
 main = do
-  let a = AlwaysRetain
-  let j = js_assignCallback
-  register "typeCheck" typeCheck
+  --register "typeCheck" typeCheck
   register "typeCheckDebug" typeCheckDebug
-  register "parseTerm" Main.parseTerm
+  --register "parseTerm" Main.parseTerm
   js_ready

@@ -72,8 +72,8 @@ data Work t tr r
   | Done r
 
 instance (Show t, Show r) => Show (Work t tr r) where
-  show (Todo t _) = "Todo (" ++ show t ++ ")"
-  show (Done r) = "Done (" ++ show r ++ ")"
+  show (Todo t _) = "Todo\n" ++ show t ++ "\n"
+  show (Done r) = "Done\n" ++ show r ++ "\n"
 
 stepWork :: (t -> (tr -> Work t tr r) -> Work t tr r) -> Work t tr r -> Work t tr r
 stepWork _ (Done r) = Done r
@@ -85,13 +85,15 @@ data Task
 
 instance Show Task where
   show (Synth γ t) =
-    "Synth\n  " ++
+    "Synth\n" ++
     --show γ ++ "\n  " ++
-    show t
+    --show t
+    pprint t
   show (Check γ t τ) =
-    "Check\n  " ++
+    "Check\n" ++
     --show γ ++ "\n  " ++
-    show t ++ "\n  " ++ show τ
+    --show t ++ "\n  " ++ show τ
+    pprint t ++ "\n" ++ pprint τ
 
 -- within a better type system, I'd have Success be Synthesized or Checked
 data TaskResult

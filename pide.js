@@ -1,7 +1,8 @@
 function haskell(f, s) {
-    var o = { x : s };
-    f(o);
-    return o.y;
+    return f(s);
+    //var o = { x : s };
+    //f(o);
+    //return o.y;
 }
 
 function hsParseTerm(s) { return haskell(window.parseTerm, s); }
